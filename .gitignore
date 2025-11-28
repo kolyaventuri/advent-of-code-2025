@@ -1,0 +1,5 @@
+out/
+.history/
+
+input/day*.txt
+!input/day*.test*.txt
