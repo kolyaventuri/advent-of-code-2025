@@ -1,16 +1,15 @@
 # Report for day0
 
-### Performance
-- **Real**: 0.39 sec
-- **User**: 0.39 sec
-- **Sys**:  0.39 sec
-- **Peak RSS**: 1.11 MB
+## Performance over 5 runs, measured via node spawn + `performance.now()`
+- **Average**: 10.71ms
 
+## Memory over 5 runs, measured by `time -l ./out/day0`
+- **Peak**: 1.66 MB
 
-`leaks --atExit --list -- ./out/day0`
+## Leak Report measured by `leaks --atExit --list -- ./out/day0`
 ```
 leaks Report Version: 3.0
-Process 61373: 169 nodes malloced for 24 KB
-Process 61373: 0 leaks for 0 total leaked bytes.
-
+Process 73059: 169 nodes malloced for 16 KB
+Process 73059: 0 leaks for 0 total leaked bytes.
 ```
+
