@@ -115,7 +115,9 @@ const leakOutput = leakCodeBlock.length > 0 ?
 ${leakCodeBlock}\`\`\`
 ` : '';
 
-const output = `# Report for ${fileName}
+const output = `_This report automatically generated via \`make report FILE=${fileName}\`_
+
+# Report for ${fileName}
 
 ${perfOutput}
 ${memOutput}
