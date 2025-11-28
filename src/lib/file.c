@@ -2,13 +2,13 @@
 #include<stdlib.h>
 
 char *read_file(const char *path, size_t *out_size) {
-  FILE *file = fopen(path, 'r');
+  FILE *file = fopen(path, "r");
   if (!file) {
     return NULL;
   }
 
   fseek(file, 0, SEEK_END);
-  long *size = ftell(file);
+  long size = ftell(file);
   fseek(file, 0, SEEK_SET);
 
   char *buffer = malloc(size + 1);

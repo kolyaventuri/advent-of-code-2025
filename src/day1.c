@@ -3,7 +3,7 @@
 
 int main(void) {
   size_t size = 0;
-  char *contents = read_file("../day1.test.txt", &size);
+  char *contents = read_file("input/day1.test.txt", &size);
   if (!contents) {
     printf("Failed to read file\n");
     return 1;
