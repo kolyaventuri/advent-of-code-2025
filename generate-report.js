@@ -98,7 +98,14 @@ const memOutput = `## Memory over ${RUNS} runs, measured by \`time -l ./out/${fi
 - **Peak**: ${avg.rss} KB`;
 
 const leakCmd = `leaks -q --atExit --list -- ./out/${fileName}`;
-const { stdout: leakResult } = await exec(leakCmd);
+let leakResult;
+try {
+  const { stdout } = await exec(leakCmd);
+  leakResult = stdout;
+} catch (error) {
+  leakResult = error.stdout;
+}
+
 const parts = leakResult.split('\n');
 let leakCodeBlock = '';
 for (let i = 0; i < parts.length; i++) {
