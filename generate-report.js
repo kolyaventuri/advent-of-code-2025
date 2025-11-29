@@ -26,7 +26,7 @@ const rssRegex = /\s*([\d.]+)\s+maximum resident set size/m;
 const measure = async () => {
   return new Promise(async (resolve) => {
     const { stderr } = await exec(command);
-    const rss = (stderr.match(rssRegex)?.[1] / 1e6) ?? null;
+    const rss = (stderr.match(rssRegex)?.[1] / 1e3) ?? null;
 
     const start = performance.now();
     const child = spawn(execPath, [], { stdio: 'ignore' });
@@ -57,14 +57,14 @@ const getAverages = (array) => {
     return array[0];
   }
 
-  let total = 0;
-
   const keys = Object.keys(array[0]);
   const result = {};
 
   for (const key of keys) {
     let min = 0;
     let max = 0;
+    let total = 0;
+
     if (array.length > 2) {
       min = Infinity;
       max = -Infinity;
@@ -81,7 +81,7 @@ const getAverages = (array) => {
     }
 
     const avg = (total - min - max) / (array.length / 2);
-    result[key] = avg.toFixed(2);
+    result[key] = avg.toLocaleString('en-US', { maximumFractionDigits: 2 });
   }
 
   return result;
@@ -95,7 +95,7 @@ const perfOutput = `## Performance over ${RUNS} runs, measured via node spawn + 
 - **Average**: ${avg.time}ms\n`;
 
 const memOutput = `## Memory over ${RUNS} runs, measured by \`time -l ./out/${fileName}\`
-- **Peak**: ${avg.rss} MB`;
+- **Peak**: ${avg.rss} KB`;
 
 const leakCmd = `leaks -q --atExit --list -- ./out/${fileName}`;
 const { stdout: leakResult } = await exec(leakCmd);
