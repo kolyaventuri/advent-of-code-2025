@@ -1,29 +1,42 @@
 #!/usr/bin/env bash
+
+# Generated with ChatGPT
+
 set -euo pipefail
 
-found=0
+shopt -s nullglob
 
-for txt in input/*.txt; do
-    [[ -e "$txt" ]] || continue
-    data=$(<"$txt")
+md_files=(reports/*.md)
+txt_files=(input/*.txt)
 
-    # Skip empty inputs just in case
-    [[ -z "$data" ]] && continue
-
-    for md in reports/*.md; do
-        [[ -e "$md" ]] || continue
-
-        if grep -Fq "$data" "$md"; then
-            echo "❌ Input leak detected: content of $txt found in $md"
-            found=1
-        fi
-    done
-done
-
-if [[ $found -eq 1 ]]; then
-    echo "Aborting due to leaked input"
-    exit 1
+# If there are no files, just succeed quietly
+if ((${#md_files[@]} == 0 || ${#txt_files[@]} == 0)); then
+  echo "No reports or inputs to scan."
+  exit 0
 fi
 
-echo "✔ No input leaks found"
+leaks=0
 
+for txt in "${txt_files[@]}"; do
+  # Optionally filter out blank lines to avoid noise
+  tmp_patterns=$(mktemp)
+  grep -v '^[[:space:]]*$' "$txt" > "$tmp_patterns" || true
+
+  for md in "${md_files[@]}"; do
+    # -F: fixed strings, -x: whole-line match, -f: patterns from file, -q: quiet
+    if grep -Fxf "$tmp_patterns" "$md" >/dev/null; then
+      echo "❌ Possible leak: a line from '$txt' appears in '$md'"
+      echo "    offending report: $md"
+      leaks=1
+    fi
+  done
+
+  rm -f "$tmp_patterns"
+done
+
+if (( leaks )); then
+  echo "Aborting due to possible leaked puzzle input."
+  exit 1
+fi
+
+echo "✔ No leaks found."
