@@ -1,6 +1,29 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Stop on any error.
-set -e
+found=0
 
-echo "pre-commit: ok"
+for txt in input/*.txt; do
+    [[ -e "$txt" ]] || continue
+    data=$(<"$txt")
+
+    # Skip empty inputs just in case
+    [[ -z "$data" ]] && continue
+
+    for md in reports/*.md; do
+        [[ -e "$md" ]] || continue
+
+        if grep -Fq "$data" "$md"; then
+            echo "❌ Input leak detected: content of $txt found in $md"
+            found=1
+        fi
+    done
+done
+
+if [[ $found -eq 1 ]]; then
+    echo "Aborting due to leaked input"
+    exit 1
+fi
+
+echo "✔ No input leaks found"
+
