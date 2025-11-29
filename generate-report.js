@@ -131,5 +131,16 @@ ${memOutput}
 ${leakOutput}
 `;
 
+let puzzleInput = null;
+try {
+  const input = path.join(__dirname, './input/', `${fileName}.txt`);
+  puzzleInput = fs.readFileSync(input).toString();
+} catch (error) {
+  console.log(error);
+  console.warn('!! Unable to scrub puzzle input');
+}
+
+const scrubbedOutput = puzzleInput ? output.replace(new RegExp(puzzleInput, 'gi'), '<Puzzle Input Scrubbed Automatically>') : output;
+
 const reportFile = path.join(__dirname, './report/', `${fileName}.md`);
-fs.writeFileSync(reportFile, output, { encoding: 'utf-8' });
+fs.writeFileSync(reportFile, scrubbedOutput, { encoding: 'utf-8' });
