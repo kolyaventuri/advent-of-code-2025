@@ -37,7 +37,11 @@ void merge_ranges(Interval *head) {
     if (current->max >= next_min) {
       current->min = current->min < next->min ? current->min : next->min; 
       current->max = current->max > next->max ? current->max : next->max; 
+
+      Interval *freeable = next;
       current->next = next->next;
+      free(freeable);
+
       continue;
     }
     current = current->next;
@@ -57,13 +61,10 @@ int main(void) {
 
   Interval *current = head;
 
-  Interval *next = malloc(sizeof(Interval));
-  next->min = 0;
-  next->max = 0;
-  next->next = NULL;
-
   unsigned long acc = 0;
   int checking = 0; // 0 = ranges, 1 = ingredients;
+  unsigned long min = 0;
+
   for (int i = 0; i < size; i++) {
     char c = contents[i];
     if (c == '\n' || c == '-') {
@@ -93,14 +94,18 @@ int main(void) {
         }
         current = head;
         acc = 0;
+        min = 0;
         continue;
       }
 
       // Populate
       if (c == '-') {
-        next->min = acc;
+        min = acc;
       } else {
+        Interval *next = malloc(sizeof(Interval));
+        next->min = min;
         next->max = acc;
+        next->next = NULL;
 
         // Insert into the list
         while (current != NULL) {
@@ -113,17 +118,10 @@ int main(void) {
           }
           current = current->next;
         }
-        if (current->next != NULL) {
-          current->next = next;
-        }
-
-        next = malloc(sizeof(Interval));
-        next->min = 0;
-        next->max = 0;
-        next->next = NULL;
 
         // Seek back to head
         current = head;
+        min = 0;
       }
 
       acc = 0;
@@ -138,7 +136,6 @@ int main(void) {
   printf("Part1: %i\n", part1);
   printf("Part2: %lu\n", part2);
 
-  free(next);
   free_list(head);
   free(contents);
   return 0;
