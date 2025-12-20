@@ -6,7 +6,7 @@ typedef struct Node {
   struct Node *center;
   struct Node *right;
   int explored;
-  int paths;
+  uint64_t paths;
   int is_splitter;
 } Node;
 
@@ -109,16 +109,20 @@ int walk_part1(Node *head) {
   return count;
 }
 
-unsigned long walk_part2(Node *head) {
+uint64_t walk_part2(Node *head) {
   if (!head) return 0;
   if (head->left == NULL && head->right == NULL && head->center == NULL) return 1;
   
   if (head->paths != -1) return head->paths;
   
-  unsigned long count = 0;
+  uint64_t count = 0;
   count += walk_part2(head->left);
   count += walk_part2(head->right);
   count += walk_part2(head->center);
+  
+  if (count == 0) {
+    count = 1;
+  }
   
   head->paths = count;
   
@@ -155,14 +159,14 @@ int main(void) {
   clear_explored(map, size);
   
   int part1 = walk_part1(head);
-  unsigned long part2 = walk_part2(head);
+  uint64_t part2 = walk_part2(head);
   
   // for (size_t i = 0; i < size; i++) {
   //   printf("%c", contents[i]);
   // }
   
   printf("Part1: %i\n", part1);
-  printf("Part1: %lu\n", part2);
+  printf("Part1: %llu\n", part2);
   
   free(contents);
   free_map(map, rows * cols);
