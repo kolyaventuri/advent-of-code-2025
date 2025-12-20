@@ -6,6 +6,7 @@ typedef struct Node {
   struct Node *center;
   struct Node *right;
   int explored;
+  int paths;
   int is_splitter;
 } Node;
 
@@ -79,6 +80,7 @@ void traverse(char *contents, size_t size, size_t index, Node **map, size_t cols
     Node *r_next = get_node(map, cols, row + 1, col + 1);
     head->right = r_next;
     head->is_splitter = 1;
+    head->paths = -1;
     traverse(contents, size, down_left, map, cols, l_next);
     traverse(contents, size, down_right, map, cols, r_next);
     contents[down_left] = '|';
@@ -88,6 +90,7 @@ void traverse(char *contents, size_t size, size_t index, Node **map, size_t cols
     Node *c_next = get_node(map, cols, row + 1, col);
     head->center = c_next;
     head->is_splitter = 0;
+    head->paths = -1;
     traverse(contents, size, down_center, map, cols, c_next);
     contents[down_center] = '|';
   }
@@ -102,6 +105,22 @@ int walk_part1(Node *head) {
   count += walk_part1(head->left);
   count += walk_part1(head->center);
   count += walk_part1(head->right);
+  
+  return count;
+}
+
+unsigned long walk_part2(Node *head) {
+  if (!head) return 0;
+  if (head->left == NULL && head->right == NULL && head->center == NULL) return 1;
+  
+  if (head->paths != -1) return head->paths;
+  
+  unsigned long count = 0;
+  count += walk_part2(head->left);
+  count += walk_part2(head->right);
+  count += walk_part2(head->center);
+  
+  head->paths = count;
   
   return count;
 }
@@ -136,13 +155,14 @@ int main(void) {
   clear_explored(map, size);
   
   int part1 = walk_part1(head);
-  clear_explored(map, size);
+  unsigned long part2 = walk_part2(head);
   
-  for (size_t i = 0; i < size; i++) {
-    printf("%c", contents[i]);
-  }
+  // for (size_t i = 0; i < size; i++) {
+  //   printf("%c", contents[i]);
+  // }
   
   printf("Part1: %i\n", part1);
+  printf("Part1: %lu\n", part2);
   
   free(contents);
   free_map(map, rows * cols);
