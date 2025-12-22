@@ -2,14 +2,16 @@
 #include<math.h>
 #include "lib/file.h"
 
+#define IS_TEST 1
+#define path (IS_TEST ? "input/day8.test.txt" : "input/day8.txt")
+#define TOTAL_PAIRS (IS_TEST ? 10 : 1000)
+
 double euclidean_d3(int p1, int p2, int p3, int q1, int q2, int q3) {
-  unsigned long a = powl(p1 - q1, 2); 
-  unsigned long b = powl(p2 - q3, 2); 
-  unsigned long c = powl(p2 - q3, 2); 
+  double a = (double)p1 - q1;
+  double b = (double)p2 - q2;
+  double c = (double)p3 - q3;
   
-  unsigned long d = a + b + c;
-  
-  return sqrt(a + b + c);
+  return sqrt(a*a + b*b + c*c);
 }
 
 typedef struct Node {
@@ -23,6 +25,12 @@ typedef struct Graph {
   Node *nodes;
   size_t node_count;
 } Graph;
+
+typedef struct Pair {
+  size_t a;
+  size_t b;
+  double dist;
+} Pair;
 
 void insert_edge(Node *from, Node *to) {
   from->edges = realloc(from->edges, (from->edge_count + 1) * sizeof(Node*));
@@ -50,9 +58,72 @@ Node *insert_node(Graph *graph, int x, int y, int z) {
   return node;
 }
 
+void free_pairs(Pair **pairs, size_t size) {
+  for (size_t i = 0; i < size; i++) {
+    free(pairs[i]);
+  }
+  
+  free(pairs);
+}
+
+void insert_by_dist(Pair **pairs, Pair next, size_t *length, size_t max_count) {
+  size_t k = *length; 
+  
+  // We haven't hit the max count yet, grow the array
+  if (k < max_count) {
+    Pair *tmp = realloc(*pairs, (*length + 1) * sizeof(**pairs));
+    if (!tmp) {
+      return;
+    }
+    *pairs = tmp;
+    (*length)++;
+  } else if (next.dist > (*pairs)[max_count - 1].dist) {
+    // Array is full, but this pair doesn't fit
+    return;
+  }
+
+  // Look backwards, locating where in the array it should live
+  while (k > 0 && (*pairs)[k - 1].dist > next.dist) {
+      // Shift up by 1 each time
+      (*pairs)[k] = (*pairs)[k - 1];
+      k--;
+  }
+
+  // Insert in place
+  (*pairs)[k] = next;
+}
+
+void get_pairs(Graph *graph, Pair **pairs, size_t count) {
+  size_t current_count = 0;
+
+  for (size_t i = 0; i < graph->node_count; i++) {
+    Node *a = &graph->nodes[i];
+    for (size_t j = 0; j < graph->node_count; j++) {
+      if (j == i) continue;
+      Node *b = &graph->nodes[j];
+      
+      double dist = euclidean_d3(
+        a->x,
+        a->y,
+        a->z,
+        ///
+        b->x,
+        b->y,
+        b->z
+      );
+      Pair pair;
+      pair.a = i;
+      pair.b = j;
+      pair.dist = dist;
+
+      insert_by_dist(pairs, pair, &current_count, count);
+    }
+  }
+}
+
 int main(void) {
   size_t size = 0;
-  char *contents = read_file("input/day8.test2.txt", &size);
+  char *contents = read_file(path, &size);
   
   Graph *graph = malloc(sizeof(Graph));
   graph->nodes = NULL;
@@ -88,30 +159,12 @@ int main(void) {
     acc = (acc * 10) + parsed;
   }
   
-  for (size_t i = 0; i < graph->node_count; i++) {
-    Node *node_a = &graph->nodes[i];
-    double min_dist = MAXFLOAT;
-    size_t min_j = graph->node_count + 1;
+  Pair *pairs = NULL; 
+  get_pairs(graph, &pairs, TOTAL_PAIRS);
 
-    for (size_t j = 0; j < graph->node_count; j++) {
-      if (j == i) continue;
-      Node *node_b = &graph->nodes[j];
-      
-      double dist = euclidean_d3(
-        node_a->x,
-        node_a->y,
-        node_a->z,
-        ///
-        node_b->x,
-        node_b->y,
-        node_b->z
-      );
-      
-      if (dist < min_dist) {
-        min_dist = dist;
-        min_j = j;
-      }
-    }
+  for (size_t i = 0; i < TOTAL_PAIRS; i++) {
+    Pair p = pairs[i];
+    printf("Pair: %zu + %zu -> %f\n", p.a, p.b, p.dist);
   }
   
   printf("Part1: %i\n", part1);
@@ -119,5 +172,6 @@ int main(void) {
   free(contents);
   free(temp_read);
   free_graph(graph);
+  free(pairs);
   return 0;
 }
