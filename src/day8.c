@@ -19,6 +19,7 @@ typedef struct Node {
   
   struct Node **edges;
   size_t edge_count;
+  unsigned char visited;
 } Node;
 
 typedef struct Graph {
@@ -98,7 +99,7 @@ void get_pairs(Graph *graph, Pair **pairs, size_t count) {
 
   for (size_t i = 0; i < graph->node_count; i++) {
     Node *a = &graph->nodes[i];
-    for (size_t j = 0; j < graph->node_count; j++) {
+    for (size_t j = i; j < graph->node_count; j++) {
       if (j == i) continue;
       Node *b = &graph->nodes[j];
       
@@ -118,6 +119,58 @@ void get_pairs(Graph *graph, Pair **pairs, size_t count) {
 
       insert_by_dist(pairs, pair, &current_count, count);
     }
+  }
+}
+
+void part1_add_edges(Graph *graph, Pair **pairs) {
+  for (size_t i = 0; i < TOTAL_PAIRS; i++) {
+    size_t a = (*pairs)[i].a;
+    size_t b = (*pairs)[i].b;
+    
+    Node *node_a = &graph->nodes[a];
+    Node *node_b = &graph->nodes[b];
+    
+    printf("Connect %zu to %zu\n", a, b);
+    
+    insert_edge(node_a, node_b);
+  }
+}
+
+Graph **compress_edges(Graph *graph, size_t *num_graphs) {  
+  Graph **collection = NULL; 
+  size_t size = 0;
+  
+  for (size_t i = 0; i < graph->node_count; i++) {
+    Node *node = &graph->nodes[i];
+
+    if (node->visited) continue;
+    node->visited = 1;
+    if (node->edge_count == 0) continue;
+    Graph *next = malloc(sizeof(Graph));
+    next->nodes = NULL;
+    next->node_count = 0;
+    
+    for (size_t j = 0; j < node->edge_count; j++) {
+      Node *edge = node->edges[j];
+      insert_node(next, edge->x, edge->y, edge->z);
+    }
+    
+    Graph *tmp = realloc(collection, (size + 1) * sizeof(*collection));
+    if (!tmp) {
+      return NULL;
+    } 
+    collection = tmp;
+    collection[size++] = next;
+  }
+  
+  *num_graphs = size;
+  
+  return collection;
+}
+
+void reset_visited(Graph *graph) {
+  for (size_t i = 0; i < graph->node_count; i++) {
+    graph->nodes[i].visited = 0;
   }
 }
 
@@ -165,6 +218,24 @@ int main(void) {
   for (size_t i = 0; i < TOTAL_PAIRS; i++) {
     Pair p = pairs[i];
     printf("Pair: %zu + %zu -> %f\n", p.a, p.b, p.dist);
+  }
+  
+  part1_add_edges(graph, &pairs);
+  for (size_t i = 0; i < graph->node_count; i++) {
+    printf("Node %zu has %zu edges\n", i, graph->nodes[i].edge_count);
+  }
+  
+  reset_visited(graph);
+  size_t num_graphs = 0;
+  Graph **graphs = compress_edges(graph, &num_graphs);
+  printf("Generated %zu sub-graphs\n", num_graphs);
+  for (size_t i = 0; i < num_graphs; i++) {
+    Graph *g = graphs[i];
+    printf("Graph %zu (size: %zu)\n", i, g->node_count);
+    for (size_t j = 0; j < g->node_count; j++) {
+      Node *n = &g->nodes[j];
+      printf("  %i, %i, %i\n", n->x, n->y, n->z);
+    }
   }
   
   printf("Part1: %i\n", part1);
