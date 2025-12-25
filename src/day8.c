@@ -1,8 +1,9 @@
 #include<stdio.h>
+#include<stdlib.h>
 #include<math.h>
 #include "lib/file.h"
 
-#define IS_TEST 1
+#define IS_TEST 0
 #define path (IS_TEST ? "input/day8.test.txt" : "input/day8.txt")
 #define TOTAL_PAIRS (IS_TEST ? 10 : 1000)
 
@@ -36,6 +37,9 @@ typedef struct Pair {
 void insert_edge(Node *from, Node *to) {
   from->edges = realloc(from->edges, (from->edge_count + 1) * sizeof(Node*));
   from->edges[from->edge_count++] = to;
+
+  to->edges = realloc(to->edges, (to->edge_count + 1) * sizeof(Node*));
+  to->edges[to->edge_count++] = from;
 }
 
 void free_graph(Graph *graph) {
@@ -130,48 +134,60 @@ void part1_add_edges(Graph *graph, Pair **pairs) {
     Node *node_a = &graph->nodes[a];
     Node *node_b = &graph->nodes[b];
     
-    printf("Connect %zu to %zu\n", a, b);
+    // printf("Connect %zu to %zu\n", a, b);
     
     insert_edge(node_a, node_b);
   }
 }
 
-Graph **compress_edges(Graph *graph, size_t *num_graphs) {  
-  Graph **collection = NULL; 
+int visit_nodes(Node *node) {
+  if (node->visited) return 0;
+
+  int count = 1;
+  node->visited = 1;
+
+  for (size_t i = 0; i < node->edge_count; i++) {
+    count += visit_nodes(node->edges[i]);
+  }
+
+  return count;
+}
+
+void compress_edges(Graph *graph, int **count, size_t *num_graphs) {  
   size_t size = 0;
   
   for (size_t i = 0; i < graph->node_count; i++) {
     Node *node = &graph->nodes[i];
-
-    if (node->visited) continue;
-    node->visited = 1;
-    if (node->edge_count == 0) continue;
-    Graph *next = malloc(sizeof(Graph));
-    next->nodes = NULL;
-    next->node_count = 0;
+    int tmp_count = visit_nodes(node);
+    if (tmp_count < 2) continue;
+    // printf("Graph %i has size %i\n", i, tmp_count);
     
-    for (size_t j = 0; j < node->edge_count; j++) {
-      Node *edge = node->edges[j];
-      insert_node(next, edge->x, edge->y, edge->z);
+    int *tmp = realloc(*count, (size + 1) * sizeof(**count));
+    if (!tmp) {
+      return; 
     }
     
-    Graph *tmp = realloc(collection, (size + 1) * sizeof(*collection));
-    if (!tmp) {
-      return NULL;
-    } 
-    collection = tmp;
-    collection[size++] = next;
+    *count = tmp;
+    
+    (*count)[size++] = tmp_count;
   }
   
   *num_graphs = size;
-  
-  return collection;
 }
 
 void reset_visited(Graph *graph) {
   for (size_t i = 0; i < graph->node_count; i++) {
     graph->nodes[i].visited = 0;
   }
+}
+
+int cmp(const void* one, const void* two) {
+  int a = *(const int*)one; 
+  int b = *(const int*)two;
+  
+  if (a < b) return 1;
+  if (a > b) return -1;
+  return 0;
 }
 
 int main(void) {
@@ -185,7 +201,6 @@ int main(void) {
   int items = 0;
   int *temp_read = malloc(2 * sizeof(int));
   int temp_index = 0;
-  unsigned int part1 = 1;
   
   int acc = 0;
   for (size_t i = 0; i < size; i++) {
@@ -214,35 +229,26 @@ int main(void) {
   
   Pair *pairs = NULL; 
   get_pairs(graph, &pairs, TOTAL_PAIRS);
-
-  for (size_t i = 0; i < TOTAL_PAIRS; i++) {
-    Pair p = pairs[i];
-    printf("Pair: %zu + %zu -> %f\n", p.a, p.b, p.dist);
-  }
-  
   part1_add_edges(graph, &pairs);
-  for (size_t i = 0; i < graph->node_count; i++) {
-    printf("Node %zu has %zu edges\n", i, graph->nodes[i].edge_count);
-  }
-  
   reset_visited(graph);
+
   size_t num_graphs = 0;
-  Graph **graphs = compress_edges(graph, &num_graphs);
-  printf("Generated %zu sub-graphs\n", num_graphs);
-  for (size_t i = 0; i < num_graphs; i++) {
-    Graph *g = graphs[i];
-    printf("Graph %zu (size: %zu)\n", i, g->node_count);
-    for (size_t j = 0; j < g->node_count; j++) {
-      Node *n = &g->nodes[j];
-      printf("  %i, %i, %i\n", n->x, n->y, n->z);
-    }
+  int *graphs = NULL;
+  compress_edges(graph, &graphs, &num_graphs);
+
+  unsigned int part1 = 1;
+  qsort(graphs, num_graphs, sizeof(int), cmp);
+
+  for (size_t i = 0; i < 3; i++) {
+    part1 *= graphs[i];
   }
-  
+
   printf("Part1: %i\n", part1);
   
   free(contents);
   free(temp_read);
   free_graph(graph);
   free(pairs);
+  free(graphs);
   return 0;
 }
